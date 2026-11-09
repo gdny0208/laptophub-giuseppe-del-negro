@@ -19,6 +19,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
+          # pnpm se activa en el paso siguiente con corepack; sin caché automática
+          package-manager-cache: false
 
       - name: Activar pnpm (versión de package.json)
         run: |
