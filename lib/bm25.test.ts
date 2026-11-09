@@ -35,6 +35,11 @@ describe('search BM25', () => {
     expect(results[1].score).toBeCloseTo(results[2].score, 10)
   })
 
+  // CASO 7: prueba rota a propósito para demostrar que el pipeline bloquea el merge
+  it('prueba rota a propósito: espera un primer resultado incorrecto', () => {
+    expect(ids('gamer 16 GB')[0]).toBe('voltix-slim-14')
+  })
+
   it('excluye documentos con puntaje cero', () => {
     expect(search('inexistente', products)).toEqual([])
   })
