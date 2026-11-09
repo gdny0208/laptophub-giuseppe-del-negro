@@ -1,0 +1,40 @@
+name: CI
+
+# Corre en cada pull request hacia main y en cada push a main
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    name: lint-test-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Activar pnpm (versión de package.json)
+        run: |
+          corepack enable
+          pnpm --version
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Revisar el código con el linter
+        run: pnpm lint
+
+      - name: Ejecutar las pruebas
+        run: pnpm test
+
+      - name: Compilar el proyecto
+        run: pnpm build
