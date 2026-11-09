@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useMemo, useState, useSyncExternalStore } from 'react'
 import { ArrowRight, Check, Minus, Plus, Search, ShoppingBag, Sparkles, Trash2 } from 'lucide-react'
 import type { Product } from '@/lib/products'
 import { products } from '@/lib/products'
@@ -12,10 +12,25 @@ type CartLine = { product: Product; quantity: number }
 type CartContextType = { lines: CartLine[]; count: number; total: number; add: (product: Product) => void; remove: (id: string) => void; update: (id: string, quantity: number) => void }
 const CartContext = createContext<CartContextType | null>(null)
 
+// Carrito persistido en localStorage, leído con useSyncExternalStore (sin setState dentro de efectos)
+const CART_KEY = 'laptophub-cart'
+const EMPTY_CART: CartLine[] = []
+let cartCache: CartLine[] | null = null
+const cartListeners = new Set<() => void>()
+function readCart(): CartLine[] {
+  if (cartCache) return cartCache
+  try { cartCache = JSON.parse(window.localStorage.getItem(CART_KEY) ?? '[]') as CartLine[] } catch { cartCache = EMPTY_CART }
+  return cartCache
+}
+function setLines(update: (current: CartLine[]) => CartLine[]) {
+  cartCache = update(readCart())
+  try { window.localStorage.setItem(CART_KEY, JSON.stringify(cartCache)) } catch { /* almacenamiento no disponible */ }
+  cartListeners.forEach((listener) => listener())
+}
+function subscribeCart(listener: () => void) { cartListeners.add(listener); return () => { cartListeners.delete(listener) } }
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>([])
-  useEffect(() => { const saved = window.localStorage.getItem('laptophub-cart'); if (saved) setLines(JSON.parse(saved)) }, [])
-  useEffect(() => { window.localStorage.setItem('laptophub-cart', JSON.stringify(lines)) }, [lines])
+  const lines = useSyncExternalStore(subscribeCart, readCart, () => EMPTY_CART)
   const value = useMemo(() => ({ lines, count: lines.reduce((sum, line) => sum + line.quantity, 0), total: lines.reduce((sum, line) => sum + line.product.precio * line.quantity, 0), add: (product: Product) => setLines((current) => { const found = current.find((line) => line.product.id === product.id); return found ? current.map((line) => line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line) : [...current, { product, quantity: 1 }] }), remove: (id: string) => setLines((current) => current.filter((line) => line.product.id !== id)), update: (id: string, quantity: number) => setLines((current) => quantity > 0 ? current.map((line) => line.product.id === id ? { ...line, quantity } : line) : current.filter((line) => line.product.id !== id)) }), [lines])
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Check, Cpu, HardDrive, MemoryStick, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, Check, Cpu, HardDrive, MemoryStick } from 'lucide-react'
 import { AddButton } from '@/components/add-button'
 import { getProduct, products } from '@/lib/products'
 export function generateStaticParams() { return products.map(({ id }) => ({ id })) }
